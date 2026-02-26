@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { useSettings } from "../context/SettingsContext";
 import { useAlbum } from "../context/AlbumContext";
 import { generateBatchPdf } from "../lib/csv";
@@ -29,11 +30,13 @@ export default function BatchPage() {
         mirrorBack,
         onProgress: (message: string) => setProgressMessage(message),
       });
+      toast.success(`PDF generated — ${csvRows.length} cards`);
     } catch (err) {
       console.error("Batch generation failed:", err);
-      setProgressMessage(
-        err instanceof Error ? err.message : "Generation failed.",
-      );
+      const message =
+        err instanceof Error ? err.message : "Generation failed.";
+      setProgressMessage(message);
+      toast.error("Batch generation failed: " + message);
     } finally {
       setIsGenerating(false);
     }

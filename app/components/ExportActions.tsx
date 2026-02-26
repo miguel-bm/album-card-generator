@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { useSettings } from "../context/SettingsContext";
 import { useAlbum } from "../context/AlbumContext";
 import { loadImage, proxyImageUrl, getQrImage } from "../lib/api";
@@ -76,6 +77,12 @@ export default function ExportActions() {
     try {
       const { coverImage, qrImage } = await loadAssets();
       await downloadSidePng("front", album, settings, coverImage, qrImage);
+      toast.success("Front PNG downloaded");
+    } catch (err) {
+      toast.error(
+        "Export failed: " +
+          (err instanceof Error ? err.message : "Unknown error"),
+      );
     } finally {
       setLoadingKey(null);
     }
@@ -87,6 +94,12 @@ export default function ExportActions() {
     try {
       const { coverImage, qrImage } = await loadAssets();
       await downloadSidePng("back", album, settings, coverImage, qrImage);
+      toast.success("Back PNG downloaded");
+    } catch (err) {
+      toast.error(
+        "Export failed: " +
+          (err instanceof Error ? err.message : "Unknown error"),
+      );
     } finally {
       setLoadingKey(null);
     }
@@ -98,6 +111,12 @@ export default function ExportActions() {
     try {
       const { coverImage, qrImage } = await loadAssets();
       await downloadCardPdf(album, settings, coverImage, qrImage);
+      toast.success("Card PDF downloaded");
+    } catch (err) {
+      toast.error(
+        "Export failed: " +
+          (err instanceof Error ? err.message : "Unknown error"),
+      );
     } finally {
       setLoadingKey(null);
     }

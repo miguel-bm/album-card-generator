@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router";
 import { AnimatePresence, motion } from "framer-motion";
+import { Toaster } from "sonner";
 import { SettingsProvider } from "./context/SettingsContext";
 import { AlbumProvider } from "./context/AlbumContext";
 import TopBar from "./components/TopBar";
@@ -35,6 +36,17 @@ export default function App() {
           <div className="min-h-screen bg-bg">
             <TopBar />
             <AnimatedRoutes />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  background: "#FFFFFF",
+                  border: "1px solid #E8E5E0",
+                  color: "#1A1A1A",
+                  fontFamily: "Inter, sans-serif",
+                },
+              }}
+            />
           </div>
         </AlbumProvider>
       </SettingsProvider>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useSettings } from "../../context/SettingsContext";
 import {
   saveProfile,
@@ -19,12 +20,16 @@ export default function ProfileManager() {
 
   const handleSave = () => {
     const name = profileName.trim();
-    if (!name) return;
+    if (!name) {
+      toast.error("Please enter a profile name");
+      return;
+    }
     saveProfile(name, settings);
     setProfileName("");
     const updated = listProfiles();
     setProfiles(updated);
     setSelectedProfile(name);
+    toast.success("Profile saved");
   };
 
   const handleLoad = () => {
@@ -32,6 +37,9 @@ export default function ProfileManager() {
     const loaded = loadProfile(selectedProfile);
     if (loaded) {
       applySettings(loaded);
+      toast.success("Profile loaded");
+    } else {
+      toast.error("Could not load profile");
     }
   };
 
@@ -41,6 +49,7 @@ export default function ProfileManager() {
     const updated = listProfiles();
     setProfiles(updated);
     setSelectedProfile(updated[0] ?? "");
+    toast.success("Profile deleted");
   };
 
   return (

@@ -6,6 +6,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
 import { useAlbum } from "../context/AlbumContext";
 import { searchAlbums, fetchAlbum, proxyImageUrl } from "../lib/api";
 import type { AlbumSearchItem, ProviderMode } from "../lib/types";
@@ -125,10 +126,14 @@ export default function SearchBar() {
           setIsOpen(items.length > 0);
           setActiveIndex(-1);
         }
-      } catch {
+      } catch (err) {
         if (id === searchIdRef.current) {
           setResults([]);
           setIsOpen(false);
+          toast.error(
+            "Search failed: " +
+              (err instanceof Error ? err.message : "Unknown error"),
+          );
         }
       } finally {
         if (id === searchIdRef.current) {
@@ -185,9 +190,13 @@ export default function SearchBar() {
       try {
         const album = await fetchAlbum(item.id, provider);
         setAlbum(album);
-      } catch {
+      } catch (err) {
         // If fetch fails, at least set basic info from search result
         // (the user can retry)
+        toast.error(
+          "Could not load album" +
+            (err instanceof Error ? ": " + err.message : ""),
+        );
       } finally {
         setIsSelecting(false);
       }
