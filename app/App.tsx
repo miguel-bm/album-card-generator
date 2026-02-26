@@ -1,8 +1,40 @@
+import { BrowserRouter, Routes, Route } from "react-router";
+import { SettingsProvider } from "./context/SettingsContext";
+import { AlbumProvider } from "./context/AlbumContext";
+
 export default function App() {
   return (
-    <div className="min-h-screen bg-bg">
-      <h1 className="text-2xl font-semibold p-8">Album Card Generator</h1>
-      <p className="px-8 text-text-muted">Tailwind tokens working.</p>
-    </div>
+    <BrowserRouter>
+      <SettingsProvider>
+        <AlbumProvider>
+          <div className="min-h-screen bg-bg">
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <div className="p-8">
+                    <h1 className="text-2xl font-semibold">
+                      Album Card Generator
+                    </h1>
+                    <p className="text-text-muted mt-2">
+                      Context providers + routing working.
+                    </p>
+                  </div>
+                }
+              />
+              <Route
+                path="/batch"
+                element={
+                  <div className="p-8">
+                    <h1 className="text-2xl font-semibold">Batch Generator</h1>
+                    <p className="text-text-muted mt-2">Batch page placeholder.</p>
+                  </div>
+                }
+              />
+            </Routes>
+          </div>
+        </AlbumProvider>
+      </SettingsProvider>
+    </BrowserRouter>
   );
 }
