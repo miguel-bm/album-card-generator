@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router";
 import { SettingsProvider } from "./context/SettingsContext";
 import { AlbumProvider } from "./context/AlbumContext";
+import TopBar from "./components/TopBar";
 
 export default function App() {
   return (
@@ -8,6 +9,7 @@ export default function App() {
       <SettingsProvider>
         <AlbumProvider>
           <div className="min-h-screen bg-bg">
+            <TopBar />
             <Routes>
               <Route
                 path="/"
