@@ -19,12 +19,29 @@ export default function AboutPage() {
             What is this?
           </h2>
           <p>
-            Cardpress generates printable 63&times;88&nbsp;mm double-sided music
-            album cards. The front shows the cover art, title, and artist; the
-            back lists every track with durations and an optional QR code. Search
-            any album, customize the design in the Style Studio, then export as
-            PNG, PDF, or duplex-ready print sheets.
+            Cardpress turns your digital music collection into a deck of
+            physical album cards. Each 63&times;88&nbsp;mm card features the
+            cover art and track listing, with an optional QR code that links
+            to the album on Spotify or your preferred service.
           </p>
+          <p className="mt-2">
+            Stick an NFC tag behind each card and pair it with a Home Assistant
+            automation — tap the card on your phone to play the album on your
+            home speaker. The result is a tangible, scannable music collection
+            you can browse, gift, and display.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-base font-semibold text-text mb-2">
+            How it works
+          </h2>
+          <ol className="list-decimal list-inside space-y-1.5 text-sm text-text">
+            <li><strong>Design</strong> — Search for an album, customize the card style.</li>
+            <li><strong>Print</strong> — Import your collection via CSV, generate duplex-ready PDF sheets.</li>
+            <li><strong>Write NFC</strong> — Use the Write Tags page to program NFC stickers with album tag IDs.</li>
+            <li><strong>Play</strong> — Tap a card on your phone to play the album on your home speaker.</li>
+          </ol>
         </section>
 
         <section>

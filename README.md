@@ -5,7 +5,7 @@
 <h1 align="center">Cardpress</h1>
 
 <p align="center">
-  Design and print beautiful album cards from your music collection.
+  Turn your digital music collection into physical album cards with NFC playback.
 </p>
 
 <p align="center">
@@ -14,19 +14,30 @@
 
 ---
 
-Cardpress generates **63x88 mm** double-sided music album cards — front with cover art, title and artist; back with the full tracklist, durations, and an optional QR code. Search any album, customize the design in the Style Studio, then export as PNG, PDF, or print-ready duplex sheets.
+Cardpress turns your digital music collection into a deck of physical **63x88 mm** album cards. Each double-sided card shows cover art, title, and artist on the front; the back lists every track with durations and an optional QR code linking to Spotify, Discogs, or a Home Assistant tag URL. Stick an NFC tag behind each card, pair it with a Home Assistant automation, and tap the card on your phone to play the album on your home speaker.
+
+### Workflow
+
+1. **Design** -- Search for an album, customize the card style in the visual Style Studio.
+2. **Print** -- Import your collection via CSV, generate duplex-ready PDF sheets (3x3 per page).
+3. **Write NFC** -- Use the Write Tags page to program NFC stickers with album tag IDs via Web NFC.
+4. **Play** -- Tap a card on your phone to trigger a Home Assistant automation and play the album.
 
 ## Features
 
-- **Search** albums via iTunes or MusicBrainz (or auto-detect)
+- **Search** albums via iTunes, MusicBrainz, or Spotify (auto-detect or manual selection)
 - **Design** front and back cards with a visual Style Studio
   - Typography, colors, gradients, borders, spacing
   - Built-in presets: Paper, Slate, Midnight, Rosé, Brutalist, Forest
   - Save/load custom style profiles
+- **QR code modes**: Spotify link, HA Tag (Home Assistant tag URL), or Discogs
 - **Export** single cards as front PNG, back PNG, or 2-page PDF
 - **Print** queue with duplex PDF generation (3x3 per page), CSV bulk import
 - **Print production** controls: A4/Letter, bleed, margins, crop marks
 - **Tracklist overflow** handling: auto-downscale, multi-column, wrapping
+- **NFC tag writing** via Web NFC API -- program NFC stickers directly from the browser (Chrome on Android)
+- **Desktop-to-phone handoff** -- generate a share code on desktop, open it on your phone to write tags
+- **Home Assistant automation** template -- copy or download a ready-made YAML automation that plays albums when an NFC tag is scanned
 
 ## Pages
 
@@ -34,6 +45,8 @@ Cardpress generates **63x88 mm** double-sided music album cards — front with c
 |------|---------|
 | **Design** | Search, preview, style, and export a single card |
 | **Print** | Queue multiple cards and generate duplex print sheets |
+| **Write Tags** | Program NFC stickers with album tag IDs via Web NFC; includes share-code handoff and HA automation template |
+| **About** | Project overview, workflow summary, and links |
 
 ## CSV import
 
@@ -45,6 +58,9 @@ From the Print page, click **Import CSV** to bulk-add albums to your print queue
 | `artist` | No | Artist or band name |
 | `cover_url` | No | URL to cover artwork image |
 | `tracks` | No | Semicolon-separated track titles, e.g. `Intro;Main Theme;Credits` |
+| `spotify_album_id` | No | Spotify album ID (used for QR codes and NFC tag IDs) |
+| `spotify_album_url` | No | Spotify album URL |
+| `discogs_url` | No | Discogs release URL (used for Discogs QR mode) |
 
 Extra columns are ignored. Values containing commas must be quoted (standard CSV rules).
 
@@ -101,6 +117,12 @@ iTunes is a trademark of Apple Inc., registered in the U.S. and other countries 
 
 - [MusicBrainz API](https://musicbrainz.org/doc/MusicBrainz_API)
 - [Cover Art Archive API](https://musicbrainz.org/doc/Cover_Art_Archive/API)
+
+### Spotify Web API
+
+- [Spotify Web API docs](https://developer.spotify.com/documentation/web-api)
+
+Spotify is a registered trademark of Spotify AB. This project uses the Spotify Web API for album search and metadata; it is not affiliated with, endorsed by, or sponsored by Spotify AB. A Spotify client ID and secret are required in the Worker environment for Spotify search to work.
 
 ## License
 
