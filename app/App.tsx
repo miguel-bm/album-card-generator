@@ -6,6 +6,7 @@ import { AlbumProvider } from "./context/AlbumContext";
 import TopBar from "./components/TopBar";
 import DesignPage from "./pages/DesignPage";
 import PrintPage from "./pages/PrintPage";
+import WriteTagsPage from "./pages/WriteTagsPage";
 import AboutPage from "./pages/AboutPage";
 
 function AnimatedRoutes() {
@@ -23,6 +24,7 @@ function AnimatedRoutes() {
         <Routes location={location}>
           <Route path="/" element={<DesignPage />} />
           <Route path="/print" element={<PrintPage />} />
+          <Route path="/write-tags" element={<WriteTagsPage />} />
           <Route path="/about" element={<AboutPage />} />
         </Routes>
       </motion.div>
