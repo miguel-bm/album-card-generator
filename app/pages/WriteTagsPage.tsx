@@ -151,6 +151,13 @@ export default function WriteTagsPage() {
     return tid && written.has(tid);
   }).length;
 
+  // Reset copied state after timeout
+  useEffect(() => {
+    if (copiedIndex === null) return;
+    const id = setTimeout(() => setCopiedIndex(null), 1500);
+    return () => clearTimeout(id);
+  }, [copiedIndex]);
+
   // Copy tag ID to clipboard
   async function handleCopy(album: AlbumDetail, index: number) {
     const tagId = getTagId(album);
@@ -158,9 +165,8 @@ export default function WriteTagsPage() {
     try {
       await navigator.clipboard.writeText(tagId);
       setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 1500);
     } catch {
-      // clipboard may not be available
+      setError("Could not copy to clipboard");
     }
   }
 
