@@ -3,7 +3,6 @@
 // Ported from public/app.js lines 933-1067
 // ---------------------------------------------------------------------------
 
-import { PDFDocument } from "pdf-lib";
 import type { AlbumDetail, CardSettings } from "./types";
 import {
   CARD_WIDTH_MM,
@@ -14,6 +13,16 @@ import {
   renderExportCanvas,
   drawCropMarksForCard,
 } from "./canvas";
+
+let pdfLibPromise: Promise<typeof import("pdf-lib")> | null = null;
+
+async function getPdfDocument() {
+  if (!pdfLibPromise) {
+    pdfLibPromise = import("pdf-lib");
+  }
+  const mod = await pdfLibPromise;
+  return mod.PDFDocument;
+}
 
 // ---------------------------------------------------------------------------
 // Blob / bytes helpers (app.js lines 933-946)
@@ -106,6 +115,7 @@ export async function downloadCardPdf(
   coverImage: HTMLImageElement | null,
   qrImage: HTMLImageElement | null,
 ): Promise<void> {
+  const PDFDocument = await getPdfDocument();
   const cardW = settings.cardWidthMm || CARD_WIDTH_MM;
   const cardH = settings.cardHeightMm || CARD_HEIGHT_MM;
   const bleedMm = settings.printBleedMm;

@@ -145,20 +145,41 @@ export default function QuickAddModal({ open, onClose, onImport }: Props) {
     setImportProgress({ done: 0, total: foundItems.length });
 
     try {
-      const albums = await mapWithConcurrency(
+      const settled = await mapWithConcurrency(
         foundItems,
         CONCURRENCY,
-        async (item) => {
+        async (item): Promise<{ album: AlbumDetail | null; query: string }> => {
           const candidate = item.candidates[item.selectedIndex] ?? item.candidates[0];
-          return fetchAlbum(candidate.id, candidate.source);
+          try {
+            const album = await fetchAlbum(candidate.id, candidate.source);
+            return { album, query: item.query };
+          } catch {
+            return { album: null, query: item.query };
+          }
         },
         (done, total) => setImportProgress({ done, total }),
       );
 
+      const albums = settled
+        .map((item) => item.album)
+        .filter((album): album is AlbumDetail => album !== null);
+      const failedCount = settled.length - albums.length;
+
+      if (!albums.length) {
+        toast.error("None of the selected albums could be loaded.");
+        return;
+      }
+
       onImport(albums);
-      toast.success(
-        `Added ${albums.length} album${albums.length !== 1 ? "s" : ""} to queue`,
-      );
+      if (failedCount > 0) {
+        toast.success(
+          `Added ${albums.length} album${albums.length !== 1 ? "s" : ""}. ${failedCount} failed to load.`,
+        );
+      } else {
+        toast.success(
+          `Added ${albums.length} album${albums.length !== 1 ? "s" : ""} to queue`,
+        );
+      }
       reset();
       onClose();
     } catch (err) {

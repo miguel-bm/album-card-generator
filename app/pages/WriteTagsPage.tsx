@@ -145,12 +145,24 @@ export default function WriteTagsPage() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     if (!code) return;
+
     fetch(`/api/share/${code}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setAlbums(data as AlbumDetail[]);
+      .then(async (r) => {
+        const data = await r.json().catch(() => null) as unknown;
+        if (!r.ok) {
+          const message = typeof data === "object" && data && "error" in data
+            ? String((data as { error?: unknown }).error ?? "")
+            : "";
+          throw new Error(message || "Failed to load shared album list");
+        }
+        if (!Array.isArray(data)) {
+          throw new Error("Invalid share payload");
+        }
+        setAlbums(data as AlbumDetail[]);
       })
-      .catch(() => setError("Failed to load shared album list"));
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Failed to load shared album list"),
+      );
   }, []);
 
   // Enrich albums missing spotifyId via Songlink
@@ -259,13 +271,23 @@ export default function WriteTagsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ albums: taggable }),
       });
-      const data = (await resp.json()) as { code: string };
+
+      const data = (await resp.json().catch(() => null)) as
+        | { code?: string; error?: string }
+        | null;
+      if (!resp.ok) {
+        throw new Error(data?.error || `Share request failed (${resp.status})`);
+      }
+      if (!data?.code) {
+        throw new Error("Share code was not returned");
+      }
+
       const url = `${window.location.origin}/write-tags?code=${data.code}`;
       setShareUrl(url);
       const qrDataUrl = await QRCode.toDataURL(url, { width: 256, margin: 2 });
       setShareQrDataUrl(qrDataUrl);
-    } catch {
-      setError("Failed to generate share link");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate share link");
     } finally {
       setIsSharing(false);
     }

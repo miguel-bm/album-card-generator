@@ -7,6 +7,10 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    cloudflare(),
+    cloudflare({
+      config: {
+        assets: { binding: "ASSETS", not_found_handling: "single-page-application" },
+      },
+    }),
   ],
 });

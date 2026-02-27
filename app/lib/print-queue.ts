@@ -3,7 +3,6 @@
 // Reuses grid layout math from csv.ts / canvas.ts
 // ---------------------------------------------------------------------------
 
-import { PDFDocument } from "pdf-lib";
 import type { AlbumDetail, CardSettings } from "./types";
 import {
   CARD_WIDTH_MM,
@@ -20,6 +19,16 @@ import {
 import { loadImage, proxyImageUrl, getQrImage } from "./api";
 import { canvasToBytes, downloadBlob } from "./export";
 import { resolveQrText } from "./qr";
+
+let pdfLibPromise: Promise<typeof import("pdf-lib")> | null = null;
+
+async function getPdfDocument() {
+  if (!pdfLibPromise) {
+    pdfLibPromise = import("pdf-lib");
+  }
+  const mod = await pdfLibPromise;
+  return mod.PDFDocument;
+}
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -39,6 +48,7 @@ export async function generateQueuePdf(
   settings: CardSettings,
   options: QueuePdfOptions,
 ): Promise<void> {
+  const PDFDocument = await getPdfDocument();
   const { mirrorBack, onProgress } = options;
 
   if (!albums.length) {

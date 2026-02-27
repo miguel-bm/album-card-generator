@@ -20,7 +20,7 @@ export default function SettingSlider({
   step,
   unit,
 }: Props) {
-  const { settings, updateSetting } = useSettings();
+  const { settings, updateSetting, updateSettingLive, commitLiveSettings } = useSettings();
   const raw = settings[settingKey];
   const value = typeof raw === "number" ? raw : 0;
 
@@ -95,7 +95,11 @@ export default function SettingSlider({
         max={max}
         step={step}
         onValueChange={([v]) => {
-          updateSetting(settingKey as keyof CardSettings, v as never);
+          updateSettingLive(settingKey as keyof CardSettings, v as never);
+        }}
+        onValueCommit={([v]) => {
+          updateSettingLive(settingKey as keyof CardSettings, v as never);
+          commitLiveSettings();
         }}
       >
         <Slider.Track className="relative h-1.5 w-full grow rounded-full bg-surface-alt">

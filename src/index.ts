@@ -117,6 +117,9 @@ const COVER_ART_ARCHIVE = "https://coverartarchive.org/release";
 
 const DEFAULT_USER_AGENT = "cardpress/0.1";
 const MUSICBRAINZ_USER_AGENT = "cardpress/0.1 (https://cardpress.miscellanics.com)";
+const UPSTREAM_TIMEOUT_MS = 10_000;
+const IMAGE_PROXY_TIMEOUT_MS = 12_000;
+const SONGLINK_TIMEOUT_MS = 10_000;
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
@@ -177,22 +180,35 @@ function trackCountFromMedia(media?: MusicBrainzMediaSummary[]): number {
   return media.reduce((total, part) => total + (part["track-count"] ?? 0), 0);
 }
 
+function isTimeoutError(error: unknown): boolean {
+  return error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError");
+}
+
 async function fetchJson<T>(
   url: URL | string,
   options?: { userAgent?: string; cacheTtl?: number }
 ): Promise<T> {
-  const response = await fetch(url.toString(), {
-    headers: {
-      "user-agent": options?.userAgent || DEFAULT_USER_AGENT,
-      accept: "application/json"
-    },
-    cf: options?.cacheTtl
-      ? {
-          cacheEverything: true,
-          cacheTtl: options.cacheTtl
-        }
-      : undefined
-  } as RequestInit);
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      headers: {
+        "user-agent": options?.userAgent || DEFAULT_USER_AGENT,
+        accept: "application/json"
+      },
+      cf: options?.cacheTtl
+        ? {
+            cacheEverything: true,
+            cacheTtl: options.cacheTtl
+          }
+        : undefined,
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
+    } as RequestInit);
+  } catch (error) {
+    if (isTimeoutError(error)) {
+      throw new Error("Upstream request timed out");
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     throw new Error(`Upstream request failed with ${response.status}`);
@@ -456,7 +472,15 @@ async function fetchSpotifyIdViaSonglink(musicUrl: string): Promise<{ spotifyId:
   const reqUrl = new URL("https://api.song.link/v1-alpha.1/links");
   reqUrl.searchParams.set("url", musicUrl);
 
-  const resp = await fetch(reqUrl.toString());
+  let resp: Response;
+  try {
+    resp = await fetch(reqUrl.toString(), {
+      signal: AbortSignal.timeout(SONGLINK_TIMEOUT_MS)
+    });
+  } catch (error) {
+    if (isTimeoutError(error)) return null;
+    throw error;
+  }
   if (!resp.ok) return null;
 
   const data = await resp.json() as {
@@ -481,12 +505,21 @@ function isSafeImageTarget(target: URL): boolean {
 }
 
 async function proxyImage(target: URL): Promise<Response> {
-  const upstream = await fetch(target.toString(), {
-    cf: {
-      cacheEverything: true,
-      cacheTtl: 86400
+  let upstream: Response;
+  try {
+    upstream = await fetch(target.toString(), {
+      cf: {
+        cacheEverything: true,
+        cacheTtl: 86400
+      },
+      signal: AbortSignal.timeout(IMAGE_PROXY_TIMEOUT_MS)
+    } as RequestInit);
+  } catch (error) {
+    if (isTimeoutError(error)) {
+      return new Response("Image fetch timed out", { status: 504 });
     }
-  } as RequestInit);
+    return new Response("Image fetch failed", { status: 502 });
+  }
 
   if (!upstream.ok || !upstream.body) {
     return new Response("Image fetch failed", { status: 502 });
@@ -509,10 +542,20 @@ async function proxyImage(target: URL): Promise<Response> {
 function generateShareCode(): string {
   const chars = "abcdefghijkmnpqrstuvwxyz23456789";
   let code = "";
+  const random = crypto.getRandomValues(new Uint8Array(6));
   for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
+    code += chars[random[i] % chars.length];
   }
   return code;
+}
+
+async function allocateShareCode(bucket: R2Bucket, maxAttempts = 12): Promise<string> {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const code = generateShareCode();
+    const existing = await bucket.head(`share/${code}`);
+    if (!existing) return code;
+  }
+  throw new Error("Failed to allocate a unique share code");
 }
 
 interface Env {
@@ -643,18 +686,33 @@ export default {
       if (!env.SHARE_BUCKET) {
         return json({ error: "Share storage not configured" }, 503);
       }
-      const body = await request.json() as { albums: unknown[] };
-      if (!Array.isArray(body.albums) || body.albums.length === 0) {
+
+      let body: unknown;
+      try {
+        body = await request.json();
+      } catch {
+        return json({ error: "Invalid JSON body" }, 400);
+      }
+
+      const albums = typeof body === "object" && body !== null
+        ? (body as { albums?: unknown }).albums
+        : undefined;
+      if (!Array.isArray(albums) || albums.length === 0) {
         return json({ error: "albums array required" }, 400);
       }
-      if (body.albums.length > 200) {
+      if (albums.length > 200) {
         return json({ error: "Too many albums (max 200)" }, 400);
       }
-      const code = generateShareCode();
-      await env.SHARE_BUCKET.put(`share/${code}`, JSON.stringify(body.albums), {
-        httpMetadata: { contentType: "application/json" },
-      });
-      return json({ code });
+
+      try {
+        const code = await allocateShareCode(env.SHARE_BUCKET);
+        await env.SHARE_BUCKET.put(`share/${code}`, JSON.stringify(albums), {
+          httpMetadata: { contentType: "application/json" },
+        });
+        return json({ code });
+      } catch (error) {
+        return json({ error: (error as Error).message || "Failed to create share code" }, 500);
+      }
     }
 
     // Share: retrieve shared album list
@@ -671,7 +729,7 @@ export default {
       return new Response(data, { headers: { "content-type": "application/json" } });
     }
 
-    // SPA fallback — serve index.html for non-API routes
+    // SPA fallback — serve static assets or index.html for client routes
     return env.ASSETS.fetch(request);
   }
 } satisfies ExportedHandler<Env>;

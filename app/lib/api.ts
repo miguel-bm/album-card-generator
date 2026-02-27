@@ -3,7 +3,6 @@
 // Ported from public/app.js lines 392-434
 // ---------------------------------------------------------------------------
 
-import QRCode from "qrcode";
 import type { AlbumSearchItem, AlbumDetail, ProviderMode } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -12,6 +11,14 @@ import type { AlbumSearchItem, AlbumDetail, ProviderMode } from "./types";
 
 const imageCache = new Map<string, HTMLImageElement>();
 const qrCache = new Map<string, HTMLImageElement>();
+let qrLibPromise: Promise<typeof import("qrcode")> | null = null;
+
+async function getQrLib(): Promise<typeof import("qrcode")> {
+  if (!qrLibPromise) {
+    qrLibPromise = import("qrcode");
+  }
+  return qrLibPromise;
+}
 
 // ---------------------------------------------------------------------------
 // URL / fetch helpers
@@ -70,6 +77,7 @@ export async function getQrImage(
   const key = `${text}::${dark}::${light}`;
   if (qrCache.has(key)) return qrCache.get(key)!;
 
+  const QRCode = await getQrLib();
   const dataUrl = await QRCode.toDataURL(text || "", {
     width: 900,
     margin: 0,

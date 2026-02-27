@@ -19,6 +19,11 @@ interface SettingsContextValue {
     key: K,
     value: CardSettings[K],
   ) => void;
+  updateSettingLive: <K extends keyof CardSettings>(
+    key: K,
+    value: CardSettings[K],
+  ) => void;
+  commitLiveSettings: () => void;
   applySettings: (partial: Partial<CardSettings>) => void;
   resetSettings: () => void;
   undo: () => void;
@@ -37,6 +42,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // Ref to track whether a change comes from undo/redo so we skip
   // pushing onto the history stacks in those cases.
   const isUndoRedoRef = useRef(false);
+  const liveSnapshotRef = useRef<CardSettings | null>(null);
+  const liveChangedRef = useRef(false);
 
   /** Push the current settings onto the past stack and clear the future. */
   const pushHistory = useCallback((prev: CardSettings) => {
@@ -50,6 +57,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const updateSetting = useCallback(
     <K extends keyof CardSettings>(key: K, value: CardSettings[K]) => {
+      liveSnapshotRef.current = null;
+      liveChangedRef.current = false;
       setSettings((prev) => {
         pushHistory(prev);
         return { ...prev, [key]: value };
@@ -58,8 +67,41 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [pushHistory],
   );
 
+  const updateSettingLive = useCallback(
+    <K extends keyof CardSettings>(key: K, value: CardSettings[K]) => {
+      setSettings((prev) => {
+        if (Object.is(prev[key], value)) {
+          return prev;
+        }
+        if (!liveSnapshotRef.current) {
+          liveSnapshotRef.current = prev;
+          setFuture([]);
+        }
+        liveChangedRef.current = true;
+        return { ...prev, [key]: value };
+      });
+    },
+    [],
+  );
+
+  const commitLiveSettings = useCallback(() => {
+    const snapshot = liveSnapshotRef.current;
+    const didChange = liveChangedRef.current;
+    liveSnapshotRef.current = null;
+    liveChangedRef.current = false;
+    if (!snapshot || !didChange) return;
+
+    setPast((p) => {
+      const next = [...p, snapshot];
+      if (next.length > MAX_HISTORY) next.shift();
+      return next;
+    });
+  }, []);
+
   const applySettings = useCallback(
     (partial: Partial<CardSettings>) => {
+      liveSnapshotRef.current = null;
+      liveChangedRef.current = false;
       setSettings((prev) => {
         pushHistory(prev);
         return { ...prev, ...partial };
@@ -69,6 +111,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 
   const resetSettings = useCallback(() => {
+    liveSnapshotRef.current = null;
+    liveChangedRef.current = false;
     setSettings((prev) => {
       pushHistory(prev);
       return { ...DEFAULT_SETTINGS };
@@ -76,6 +120,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [pushHistory]);
 
   const undo = useCallback(() => {
+    liveSnapshotRef.current = null;
+    liveChangedRef.current = false;
     setPast((prevPast) => {
       if (prevPast.length === 0) return prevPast;
       const newPast = [...prevPast];
@@ -94,6 +140,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const redo = useCallback(() => {
+    liveSnapshotRef.current = null;
+    liveChangedRef.current = false;
     setFuture((prevFuture) => {
       if (prevFuture.length === 0) return prevFuture;
       const newFuture = [...prevFuture];
@@ -114,9 +162,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const canUndo = past.length > 0;
   const canRedo = future.length > 0;
 
-  // Persist on every settings change.
+  // Persist settings with a short debounce to reduce localStorage churn.
   useEffect(() => {
-    persistCurrentAsDefault(settings);
+    const timer = setTimeout(() => {
+      persistCurrentAsDefault(settings);
+    }, 200);
+    return () => clearTimeout(timer);
   }, [settings]);
 
   // Global keyboard shortcuts: Cmd+Z for undo, Cmd+Shift+Z for redo.
@@ -146,6 +197,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       value={{
         settings,
         updateSetting,
+        updateSettingLive,
+        commitLiveSettings,
         applySettings,
         resetSettings,
         undo,

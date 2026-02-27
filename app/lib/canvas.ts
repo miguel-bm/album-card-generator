@@ -3,8 +3,7 @@
 // Ported 1:1 from public/app.js — preserves all rendering math exactly.
 // ---------------------------------------------------------------------------
 
-import { rgb } from "pdf-lib";
-import type { PDFPage } from "pdf-lib";
+import type { Color, PDFPage } from "pdf-lib";
 import type { AlbumDetail, CardSettings } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -828,6 +827,10 @@ export function renderExportCanvas(
 // a minimal duck-type so this module does not import pdf-lib directly.
 // ---------------------------------------------------------------------------
 
+function pdfRgb(red: number, green: number, blue: number): Color {
+  return { type: "RGB", red, green, blue } as unknown as Color;
+}
+
 export function drawGridGuides(
   page: PDFPage,
   pageHeight: number,
@@ -839,7 +842,7 @@ export function drawGridGuides(
   cols: number,
   rows: number,
 ): void {
-  const color = rgb(0.78, 0.78, 0.78);
+  const color = pdfRgb(0.78, 0.78, 0.78);
 
   for (let col = 0; col <= cols; col += 1) {
     const x = originX + col * (cellW + gap) - (col === cols ? gap : 0);
@@ -880,7 +883,7 @@ export function drawCropMarksForCard(
   trimH: number,
   options: CropMarkOptions,
 ): void {
-  const color = rgb(0.15, 0.15, 0.15);
+  const color = pdfRgb(0.15, 0.15, 0.15);
   const length = options.lengthPt;
   const offset = options.offsetPt;
   const thickness = 0.45;
