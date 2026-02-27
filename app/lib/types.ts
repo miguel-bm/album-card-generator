@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 /** Provider identifier returned by the Worker API */
-export type ProviderName = "itunes" | "musicbrainz";
+export type ProviderName = "itunes" | "musicbrainz" | "spotify";
 
 /** Provider selection mode (includes "auto" which tries both) */
 export type ProviderMode = "itunes" | "musicbrainz" | "auto";
@@ -36,6 +36,9 @@ export interface AlbumDetail {
   releaseDate: string | null;
   tracks: TrackItem[];
   source: ProviderName;
+  spotifyId?: string;
+  spotifyUrl?: string;
+  discogsUrl?: string;
 }
 
 // ---------------------------------------------------------------------------

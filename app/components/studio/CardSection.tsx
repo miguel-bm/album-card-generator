@@ -22,8 +22,9 @@ const CARD_SIZE_PRESETS = [
 
 const qrContentOptions = [
   { value: "title", label: "Title" },
-  { value: "spotify", label: "Spotify" },
-  { value: "apple-music", label: "Apple" },
+  { value: "spotify-link", label: "Spotify" },
+  { value: "ha-tag", label: "HA Tag" },
+  { value: "discogs", label: "Discogs" },
   { value: "custom", label: "Custom" },
 ];
 

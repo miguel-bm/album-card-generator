@@ -1,4 +1,4 @@
-type ProviderName = "itunes" | "musicbrainz";
+type ProviderName = "itunes" | "musicbrainz" | "spotify";
 type ProviderMode = ProviderName | "auto";
 
 interface AlbumSearchItem {
@@ -26,6 +26,9 @@ interface AlbumDetail {
   releaseDate: string | null;
   tracks: TrackItem[];
   source: ProviderName;
+  spotifyId?: string;
+  spotifyUrl?: string;
+  discogsUrl?: string;
 }
 
 interface ItunesCollectionRecord {
