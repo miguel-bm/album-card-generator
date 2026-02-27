@@ -759,6 +759,9 @@ export default {
       if (!Array.isArray(body.albums) || body.albums.length === 0) {
         return json({ error: "albums array required" }, 400);
       }
+      if (body.albums.length > 200) {
+        return json({ error: "Too many albums (max 200)" }, 400);
+      }
       const code = generateShareCode();
       await env.SHARE_BUCKET.put(`share/${code}`, JSON.stringify(body.albums), {
         httpMetadata: { contentType: "application/json" },
@@ -769,7 +772,7 @@ export default {
     // Share: retrieve shared album list
     if (url.pathname.startsWith("/api/share/")) {
       const code = url.pathname.split("/api/share/")[1];
-      if (!code || !env.SHARE_BUCKET) {
+      if (!code || !/^[a-z2-9]{6}$/.test(code) || !env.SHARE_BUCKET) {
         return json({ error: "Not found" }, 404);
       }
       const obj = await env.SHARE_BUCKET.get(`share/${code}`);

@@ -249,7 +249,7 @@ export default function AlbumEditModal({ open, onClose, album, onSave }: Props) 
               >
                 <option value="">Use global setting</option>
                 <option value="title">Title</option>
-                <option value="spotify">Spotify Link</option>
+                <option value="spotify-link">Spotify Link</option>
                 <option value="ha-tag">HA Tag</option>
                 <option value="discogs">Discogs</option>
                 <option value="custom">Custom</option>
