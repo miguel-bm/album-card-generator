@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import QRCode from "qrcode";
 import type { AlbumDetail } from "../lib/types";
 
 // ---------------------------------------------------------------------------
@@ -125,11 +126,27 @@ export default function WriteTagsPage() {
   const [writingIndex, setWritingIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareQrDataUrl, setShareQrDataUrl] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   // Load data from localStorage on mount
   useEffect(() => {
     setAlbums(loadQueue());
     setWritten(loadWrittenSet());
+  }, []);
+
+  // Load albums from share code if ?code= param is in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    if (!code) return;
+    fetch(`/api/share/${code}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setAlbums(data as AlbumDetail[]);
+      })
+      .catch(() => setError("Failed to load shared album list"));
   }, []);
 
   // Persist written set whenever it changes
@@ -195,6 +212,28 @@ export default function WriteTagsPage() {
     }
   }
 
+  // Generate share link + QR code for desktop-to-phone handoff
+  async function handleShare() {
+    if (!taggable.length) return;
+    setIsSharing(true);
+    try {
+      const resp = await fetch("/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ albums: taggable }),
+      });
+      const data = (await resp.json()) as { code: string };
+      const url = `${window.location.origin}/write-tags?code=${data.code}`;
+      setShareUrl(url);
+      const qrDataUrl = await QRCode.toDataURL(url, { width: 256, margin: 2 });
+      setShareQrDataUrl(qrDataUrl);
+    } catch {
+      setError("Failed to generate share link");
+    } finally {
+      setIsSharing(false);
+    }
+  }
+
   return (
     <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
       {/* Header */}
@@ -246,6 +285,42 @@ export default function WriteTagsPage() {
               }}
             />
           </div>
+        </div>
+      )}
+
+      {/* Send to Phone */}
+      {taggable.length > 0 && (
+        <div className="mb-6">
+          {!shareUrl ? (
+            <button
+              type="button"
+              onClick={handleShare}
+              disabled={isSharing}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-accent text-white hover:bg-accent-hover transition-colors disabled:opacity-50"
+            >
+              {isSharing ? "Generating..." : "Send to Phone"}
+            </button>
+          ) : (
+            <div className="flex items-start gap-6 p-4 rounded-xl border border-border bg-surface-alt">
+              {shareQrDataUrl && (
+                <img src={shareQrDataUrl} alt="Scan to open on phone" className="w-32 h-32 rounded-lg" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-text">Scan to open on your phone</p>
+                <p className="text-xs text-text-muted mt-1">
+                  Opens the Write Tags page on your phone with the same album list.
+                </p>
+                <p className="text-[11px] text-text-faint font-mono mt-2 break-all">{shareUrl}</p>
+                <button
+                  type="button"
+                  onClick={() => { setShareUrl(null); setShareQrDataUrl(null); }}
+                  className="mt-2 text-xs text-text-muted hover:text-text transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -12,5 +12,11 @@
   },
   "routes": [
     { "pattern": "cardpress.miscellanics.com", "custom_domain": true }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "SHARE_BUCKET",
+      "bucket_name": "cardpress-shares"
+    }
   ]
 }

@@ -645,17 +645,27 @@ async function proxyImage(target: URL): Promise<Response> {
   });
 }
 
+function generateShareCode(): string {
+  const chars = "abcdefghijkmnpqrstuvwxyz23456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
   SPOTIFY_CLIENT_ID?: string;
   SPOTIFY_CLIENT_SECRET?: string;
+  SHARE_BUCKET?: R2Bucket;
 }
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    if (request.method !== "GET") {
+    if (request.method !== "GET" && request.method !== "POST") {
       return json({ error: "Method not allowed" }, 405);
     }
 
@@ -738,6 +748,36 @@ export default {
       }
 
       return proxyImage(target);
+    }
+
+    // Share: store album list, return share code
+    if (url.pathname === "/api/share" && request.method === "POST") {
+      if (!env.SHARE_BUCKET) {
+        return json({ error: "Share storage not configured" }, 503);
+      }
+      const body = await request.json() as { albums: unknown[] };
+      if (!Array.isArray(body.albums) || body.albums.length === 0) {
+        return json({ error: "albums array required" }, 400);
+      }
+      const code = generateShareCode();
+      await env.SHARE_BUCKET.put(`share/${code}`, JSON.stringify(body.albums), {
+        httpMetadata: { contentType: "application/json" },
+      });
+      return json({ code });
+    }
+
+    // Share: retrieve shared album list
+    if (url.pathname.startsWith("/api/share/")) {
+      const code = url.pathname.split("/api/share/")[1];
+      if (!code || !env.SHARE_BUCKET) {
+        return json({ error: "Not found" }, 404);
+      }
+      const obj = await env.SHARE_BUCKET.get(`share/${code}`);
+      if (!obj) {
+        return json({ error: "Share code not found or expired" }, 404);
+      }
+      const data = await obj.text();
+      return new Response(data, { headers: { "content-type": "application/json" } });
     }
 
     // SPA fallback — serve index.html for non-API routes
